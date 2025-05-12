@@ -1,0 +1,76 @@
+.bi {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+}
+
+/*
+ * Sidebar
+ */
+
+@media (min-width: 768px) {
+  .sidebar .offcanvas-lg {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 48px;
+  }
+  .navbar-search {
+    display: block;
+  }
+
+}
+
+@media (max-width: 768px){
+  .navbar-brand{
+    font-size: 1.05rem !important
+  }
+}
+
+.sidebar .nav-link {
+  font-size: .875rem;
+  font-weight: 500;
+}
+
+.sidebar .nav-link.active {
+  color: #2470dc;
+}
+
+.sidebar-heading {
+  font-size: .95rem;
+}
+
+.checkbox-labels{
+  font-size: .85rem;
+}
+
+.paragraph{
+  font-size: .95rem;
+}
+
+.footnote{
+  font-size: .85rem;
+}
+
+/*
+ * Navbar
+ */
+
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  background-color: rgba(0, 0, 0, 0);
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0);
+}
+
+.navbar .form-control {
+  padding: .75rem 1rem;
+}
+
+
+
+/*
+ * Map
+ */
+
+ #map { height: 560px; }
+
