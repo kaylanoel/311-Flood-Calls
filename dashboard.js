@@ -37,7 +37,22 @@ var districts = L.geoJSON(null, {
   }
   }).addTo(map);
 
-//add the data
+
+//Create the table
+        var table = new Tabulator("#table_div", {
+            height:300, 
+            data: null,
+            layout:"fitColumns",
+            columns:[	 	
+            {title:"Date", field:"Formatted"},
+            {title:"Address", field:"IncidentAdd", hozAlign:"left"},
+            {title:"Complaint", field: "Complaint", hozAlign:"left"},
+            {title: "Description", field: "Descript2", hozAlign:"left"},
+            ]
+        });
+
+
+//add the districts data
       fetch("./boundaries.json").then(
         function(response) {return response.json();}
       ).then(function(data){
@@ -57,17 +72,6 @@ var points311 = L.geoJSON(null, {
       weight:1.5, 
       opacity:.6,
       fillOpacity:.4};
-  },
-  filter: (feature) => {
-    const year = feature.properties.Year;
-    const isYearChecked = checkboxStates.years.includes(year);
-    console.log("Feature year:", year, "Is year checked:", isYearChecked);
-
-    const problem = feature.properties.Descript2.trim();
-    const isProblemTypeChecked = checkboxStates.problems.includes(problem);
-    console.log("Feature problem:", problem, "Is problem checked:", isProblemTypeChecked);
-    
-    return isYearChecked && isProblemTypeChecked; //only true if both are true
   },
   pointToLayer: function(geoJsonPoint, latlng) {
   return L.circleMarker(latlng, {radius: 4});
@@ -107,23 +111,74 @@ var points311 = L.geoJSON(null, {
   }
 
 
-//This is the event listener. It clears the layer, runs the function to get an updated
-//array of which boxes are checked and then loads that data again.
+//Function to check the array to the features and remove features not in the array
+function filterVisiblePoints(){  
+  points311.getLayers().forEach( (l) => {
+    const feature =l.feature;
+
+    const year = feature.properties.Year;
+    const isYearChecked = checkboxStates.years.includes(year);
+
+    const problem = feature.properties.Descript2.trim();
+    const isProblemTypeChecked = checkboxStates.problems.includes(problem);
+
+    if(isYearChecked && isProblemTypeChecked) {
+        l.addTo(map);
+    } else {
+        l.removeFrom(map);
+    }
+  });
+} 
+
+//Function to filter the rows based on checkboxes
+function filterRows() {
+  table.setFilter(function(data) {
+    // data: the row data (properties)
+    const year = data.Year;
+    const problem = data.Descript2 && data.Descript2.trim();
+
+    const isYearChecked = checkboxStates.years.includes(year);
+    const isProblemTypeChecked = checkboxStates.problems.includes(problem);
+
+    return isYearChecked && isProblemTypeChecked;
+  });
+}
+
+
+
+//This is the event listener. 
   for (let input of document.querySelectorAll('input')) {
     //Listen to 'change' event of all inputs
     input.onchange = (e) => {
-       points311.clearLayers()
-       updateCheckboxStates()
-       fetch("./HeavyRain311CallsCleaned.geojson")
-        .then((response) => {console.log("Fetch 1 response:", response);
-          return response.json();
-        }) // Parse the JSON data
-        .then((data) => {
-          console.log("GeoJSON data:", data);
-          points311.addData(data); // Add the GeoJSON data to the layer
-  }); 
+      //see which boxes are checked
+       updateCheckboxStates();
+      //filter out markers not in the array
+       filterVisiblePoints();
+       filterRows();
     }
   }
+
+//Clicking the row highlights the corresponding point
+let highlightMarker
+
+table.on("rowClick", function(e, row){
+  const rowData = row.getData();
+
+  const lat = rowData.Latitude
+  const long = rowData.Longitude
+
+  if (highlightMarker) {
+    map.removeLayer(highlightMarker);
+  }
+
+  highlightMarker = L.circleMarker([lat, long],{
+      radius: 8,
+      color: "#ff0000",
+      fillColor: "#ff0000",
+    }).addTo(map);
+  map.setView([lat, long], 16); 
+    },
+);
 
 
  /****** INIT ******/
@@ -132,6 +187,14 @@ var points311 = L.geoJSON(null, {
   .then((response) => response.json()) // Parse the JSON data
   .then((data) => {
     points311.addData(data); // Add the GeoJSON data to the layer
+
+    let attrTable = new Array(data.features.length).fill(null);
+
+            data.features.forEach((v, i) => {
+              attrTable[i] = v.properties;
+            });
+
+            table.addData(attrTable);
   });
 
 
@@ -144,26 +207,16 @@ var points311 = L.geoJSON(null, {
   layer: points311,
   propertyName: "IncidentAdd",
   textPlaceholder:"Search for an Address",
-  marker: false,
+  circleMarker : {
+      radius: 8,
+      color: "#ff0000",
+      fillColor: "#ff0000",
+    },
   moveToLocation: function (latlng, title, map) {
-    //map.fitBounds( latlng.layer.getBounds() );
-    var zoom = map.getBoundsZoom(latlng.layer.getBounds());
-    map.setView(latlng, zoom); // access the zoom
-  },
+    console.log("moveToLocation called!", latlng, title, map);
+    map.setView(latlng, 16); 
+    },
 });
-
-/** 
-searchControl
-  .on("search:locationfound", function (e) {
-    e.layer.setStyle({ fillColor: "#3f0", color: "#0f0" });
-    if (e.layer._popup) e.layer.openPopup();
-  })
-  .on("search:collapsed", function (e) {
-    points311.eachLayer(function (layer) {
-      //restore feature color
-      points311.resetStyle(layer);
-    });
-  }); */
 
 map.addControl(searchControl); //inizialize search control
 
